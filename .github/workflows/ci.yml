@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  luacheck:
+    name: luacheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install luacheck
+        run: |
+          sudo apt-get update
+          sudo apt-add-repository universe
+          sudo apt install luarocks -y
+          sudo luarocks install luacheck
+      - name: Run luacheck
+        run: luacheck lua/
+
+  stylua:
+    name: stylua
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: JohnnyMorganz/stylua-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: 0.15.1
+          args: --color always --check lua/ --config-path=.stylua.toml
