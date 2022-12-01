@@ -14,16 +14,23 @@ local M = {
 
 function M.parse(lines)
 	local list = {}
+	local i = 1
+	local len = #lines
 
-	for i, line in ipairs(lines) do
-		local delimiter = line:match("^[\t%s]*" .. M.settings.delimiter .. "*")
+	::start::
+	while i <= len do
+		local delimiter =
+			lines[i]:match("^[\t%s]*" .. M.settings.delimiter .. "+")
 
+		-- Remove empty lines or lines without delimiters and continue.
 		if not delimiter then
-			break
+			table.remove(lines, i)
+			len = len - 1
+			goto start
 		end
 
 		local item
-		local name = line:sub(#delimiter + 1):gsub("^%s*(.-)%s*$", "%1")
+		local name = lines[i]:sub(#delimiter + 1):gsub("^%s*(.-)%s*$", "%1")
 		local depth = #delimiter
 		local prev = list[i - 1]
 
@@ -76,6 +83,8 @@ function M.parse(lines)
 
 		item.depth = depth
 		table.insert(list, item)
+
+		i = i + 1
 	end
 
 	local last = list[#list]
@@ -110,6 +119,8 @@ function M.generate(depth)
 
 	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
 	local list = M.parse(lines)
+
+	if #list == 0 then return end
 
 	local result = vim.tbl_map(function(item)
 		local texts = {}
