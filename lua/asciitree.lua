@@ -14,6 +14,14 @@ local M = {
 
 M.symbols = {}
 
+local function tbl_copy(tbl)
+	local n = {}
+	for k, v in pairs(tbl) do
+		n[k] = v
+	end
+	return n
+end
+
 local function sanitize(char)
 	return string.gsub(char, "([\\-\\*\\+\\.\\?])", "\\%1")
 end
@@ -21,25 +29,30 @@ end
 --- Generates the tree and removes empty and unrelated content.
 -- @param lines List of lines to generate the tree from
 function M.parse(lines, delim)
+	local new_lines = tbl_copy(lines)
 	local list = {}
 	local single_parent
 	local i = 1
-	local len = #lines
+	local len = #new_lines
 
 	::start::
+	if #new_lines == 0 then
+		return {}
+	end
+
 	while i <= len do
 		local delimiter =
-			lines[i]:match("^[\t%s]*[" .. sanitize(delim) .. "]+")
+			new_lines[i]:match("^[\t%s]*[" .. sanitize(delim) .. "]+")
 
 		-- Remove empty lines or lines without delimiters and continue.
 		if not delimiter then
-			table.remove(lines, i)
+			table.remove(new_lines, i)
 			len = len - 1
 			goto start
 		end
 
 		local item
-		local name = lines[i]:sub(#delimiter + 1):gsub("^%s*(.-)%s*$", "%1")
+		local name = new_lines[i]:sub(#delimiter + 1):gsub("^%s*(.-)%s*$", "%1")
 		local depth = #delimiter
 		local prev = list[i - 1]
 
@@ -138,7 +151,9 @@ function M.format_branches(lines, opts)
 
 	local list, is_single = M.parse(lines, opts.delimiter)
 
-	if #list == 0 then return end
+	if #list == 0 then
+		return lines
+	end
 
 	-- Format each branch with the correct tree characters.
 	return vim.tbl_map(function(item)
