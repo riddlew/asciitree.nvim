@@ -12,6 +12,8 @@ local M = {
 	},
 }
 
+--- Generates the tree and removes empty and unrelated content.
+-- @param lines List of lines to generate the tree from
 function M.parse(lines)
 	local list = {}
 	local single_parent
@@ -60,6 +62,7 @@ function M.parse(lines)
 				local sibling = list[sibling_index]
 				local last_map = {}
 
+				-- This is not the first top level dir and is not a single parent.
 				if depth == 1 then
 					single_parent = false
 				end
@@ -106,7 +109,11 @@ function M.parse(lines)
 	return list, single_parent
 end
 
-local function format_line(start, fill, size)
+--- Creates the tree branch segment with the correct symbols and padding.
+-- @param start Character used for the start of the branch
+-- @param fill  Character used for padding
+-- @param size  Fill length
+local function format_segment(start, fill, size)
 	local result = ""
 	for i = 1, size do
 		if i == 1 then
@@ -118,11 +125,14 @@ local function format_line(start, fill, size)
 	return result .. " "
 end
 
+--- Generate the tree.
+-- @param depth Width of each branch segment
 function M.generate(depth)
 	depth = depth or M.settings.depth
 	local line_start = vim.api.nvim_buf_get_mark(0, "<")[1] - 1
 	local line_end = vim.api.nvim_buf_get_mark(0, ">")[1]
 
+	-- Do not run if the selection is empty or there is no previous selection.
 	if line_start == -1 or line_end == 0 then
 		return
 	end
@@ -132,8 +142,9 @@ function M.generate(depth)
 
 	if #list == 0 then return end
 
+	-- Format each branch with the correct tree characters.
 	local result = vim.tbl_map(function(item)
-		local texts = {}
+		local branch = {}
 		local parent = item.parent
 		local line
 
@@ -147,25 +158,38 @@ function M.generate(depth)
 			line = format_segment(char, M.settings.symbols.dash, depth)
 		end
 
-		table.insert(texts, line)
+		table.insert(branch, line)
 
 		while parent and (parent.depth ~= 1 or not is_single) do
-			line = format_line(
+			line = format_segment(
 				parent.is_last and M.settings.symbols.blank
 					or M.settings.symbols.parent,
 				M.settings.symbols.blank,
 				depth
 			)
-			table.insert(texts, 1, line)
+			table.insert(branch, 1, line)
 			parent = parent.parent
 		end
 
-		return table.concat(texts, "") .. item.name
+		return table.concat(branch, "") .. item.name
 	end, list)
 
 	vim.api.nvim_buf_set_lines(0, line_start, line_end, false, result)
 end
 
+--- Setup custom options.
+-- Accepted options (defaults shown):
+-- {
+--     symbols = {
+--         child = "├",
+--         last = "└",
+--         parent = "│",
+--         dash = "─",
+--         blank = " ",
+--     },
+--     depth = 2,
+--     delimiter = "#",
+-- }
 function M.setup(opts)
 	opts = opts or {}
 	M.settings = vim.tbl_deep_extend("force", M.settings, opts)
