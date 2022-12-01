@@ -14,6 +14,7 @@ local M = {
 
 function M.parse(lines)
 	local list = {}
+	local single_parent
 	local i = 1
 	local len = #lines
 
@@ -43,6 +44,10 @@ function M.parse(lines)
 					parent = prev,
 				}
 			elseif depth == prev.depth then
+				if depth == 1 then
+					single_parent = false
+				end
+
 				item = {
 					name = name,
 					is_last = false,
@@ -54,6 +59,10 @@ function M.parse(lines)
 				local sibling_index = i - 1
 				local sibling = list[sibling_index]
 				local last_map = {}
+
+				if depth == 1 then
+					single_parent = false
+				end
 
 				while sibling_index >= 1 and sibling.depth ~= depth do
 					if
@@ -74,6 +83,7 @@ function M.parse(lines)
 				}
 			end
 		else
+			single_parent = true
 			item = {
 				name = name,
 				is_last = false,
@@ -93,7 +103,7 @@ function M.parse(lines)
 		last = last.parent
 	end
 
-	return list
+	return list, single_parent
 end
 
 local function format_line(start, fill, size)
@@ -118,21 +128,28 @@ function M.generate(depth)
 	end
 
 	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
-	local list = M.parse(lines)
+	local list, is_single = M.parse(lines)
 
 	if #list == 0 then return end
 
 	local result = vim.tbl_map(function(item)
 		local texts = {}
 		local parent = item.parent
-		local line = format_line(
-			item.is_last and M.settings.symbols.last or M.settings.symbols.child,
-			M.settings.symbols.dash,
-			depth
-		)
+		local line
+
+		if item.depth ~= 1 or not is_single then
+			local char
+			if item.is_last then
+				char = M.settings.symbols.last
+			else
+				char = M.settings.symbols.child
+			end
+			line = format_segment(char, M.settings.symbols.dash, depth)
+		end
+
 		table.insert(texts, line)
 
-		while parent do
+		while parent and (parent.depth ~= 1 or not is_single) do
 			line = format_line(
 				parent.is_last and M.settings.symbols.blank
 					or M.settings.symbols.parent,
