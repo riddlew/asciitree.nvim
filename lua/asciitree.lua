@@ -12,6 +12,10 @@ local M = {
 	},
 }
 
+local function sanitize(char)
+	return string.gsub(char, "([\\-\\*\\+\\.\\?])", "\\%1")
+end
+
 --- Generates the tree and removes empty and unrelated content.
 -- @param lines List of lines to generate the tree from
 function M.parse(lines)
@@ -23,7 +27,7 @@ function M.parse(lines)
 	::start::
 	while i <= len do
 		local delimiter =
-			lines[i]:match("^[\t%s]*" .. M.settings.delimiter .. "+")
+			lines[i]:match("^[\t%s]*[" .. sanitize(M.settings.delimiter) .. "]+")
 
 		-- Remove empty lines or lines without delimiters and continue.
 		if not delimiter then
