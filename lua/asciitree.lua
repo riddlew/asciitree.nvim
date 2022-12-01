@@ -12,6 +12,8 @@ local M = {
 	},
 }
 
+M.symbols = {}
+
 local function sanitize(char)
 	return string.gsub(char, "([\\-\\*\\+\\.\\?])", "\\%1")
 end
@@ -129,25 +131,16 @@ local function format_segment(start, fill, size)
 	return result .. " "
 end
 
---- Generate the tree.
--- @param depth Width of each branch segment
-function M.generate(depth)
-	depth = depth or M.settings.depth
-	local line_start = vim.api.nvim_buf_get_mark(0, "<")[1] - 1
-	local line_end = vim.api.nvim_buf_get_mark(0, ">")[1]
+function M.format_branches(lines, opts)
+	opts = opts or {}
+	opts.depth = opts.depth or M.settings.depth
 
-	-- Do not run if the selection is empty or there is no previous selection.
-	if line_start == -1 or line_end == 0 then
-		return
-	end
-
-	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
 	local list, is_single = M.parse(lines)
 
 	if #list == 0 then return end
 
 	-- Format each branch with the correct tree characters.
-	local result = vim.tbl_map(function(item)
+	return vim.tbl_map(function(item)
 		local branch = {}
 		local parent = item.parent
 		local line
@@ -159,7 +152,7 @@ function M.generate(depth)
 			else
 				char = M.settings.symbols.child
 			end
-			line = format_segment(char, M.settings.symbols.dash, depth)
+			line = format_segment(char, M.settings.symbols.dash, opts.depth)
 		end
 
 		table.insert(branch, line)
@@ -169,7 +162,7 @@ function M.generate(depth)
 				parent.is_last and M.settings.symbols.blank
 					or M.settings.symbols.parent,
 				M.settings.symbols.blank,
-				depth
+				opts.depth
 			)
 			table.insert(branch, 1, line)
 			parent = parent.parent
@@ -177,6 +170,23 @@ function M.generate(depth)
 
 		return table.concat(branch, "") .. item.name
 	end, list)
+end
+
+--- Generate the tree.
+-- @param depth Width of each branch segment
+function M.generate(depth)
+	local line_start = vim.api.nvim_buf_get_mark(0, "<")[1] - 1
+	local line_end = vim.api.nvim_buf_get_mark(0, ">")[1]
+
+	-- Do not run if the selection is empty or there is no previous selection.
+	if line_start == -1 or line_end == 0 then
+		return
+	end
+
+	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
+	local result = M.format_branches(lines, {
+		depth = depth,
+	})
 
 	vim.api.nvim_buf_set_lines(0, line_start, line_end, false, result)
 end
