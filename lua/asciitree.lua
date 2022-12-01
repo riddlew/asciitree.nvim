@@ -20,7 +20,7 @@ end
 
 --- Generates the tree and removes empty and unrelated content.
 -- @param lines List of lines to generate the tree from
-function M.parse(lines)
+function M.parse(lines, delim)
 	local list = {}
 	local single_parent
 	local i = 1
@@ -29,7 +29,7 @@ function M.parse(lines)
 	::start::
 	while i <= len do
 		local delimiter =
-			lines[i]:match("^[\t%s]*[" .. sanitize(M.settings.delimiter) .. "]+")
+			lines[i]:match("^[\t%s]*[" .. sanitize(delim) .. "]+")
 
 		-- Remove empty lines or lines without delimiters and continue.
 		if not delimiter then
@@ -134,8 +134,9 @@ end
 function M.format_branches(lines, opts)
 	opts = opts or {}
 	opts.depth = opts.depth or M.settings.depth
+	opts.delimiter = opts.delimiter or M.settings.delimiter
 
-	local list, is_single = M.parse(lines)
+	local list, is_single = M.parse(lines, opts.delimiter)
 
 	if #list == 0 then return end
 
@@ -174,7 +175,7 @@ end
 
 --- Generate the tree.
 -- @param depth Width of each branch segment
-function M.generate(depth)
+function M.generate(depth, delimiter)
 	local line_start = vim.api.nvim_buf_get_mark(0, "<")[1] - 1
 	local line_end = vim.api.nvim_buf_get_mark(0, ">")[1]
 
@@ -186,6 +187,7 @@ function M.generate(depth)
 	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
 	local result = M.format_branches(lines, {
 		depth = depth,
+		delimiter = delimiter,
 	})
 
 	vim.api.nvim_buf_set_lines(0, line_start, line_end, false, result)
