@@ -2,6 +2,10 @@
 
 Converts selected text into an ASCII tree using the `:AsciiTree` command. Inspired by the VSCode [Ascii Tree Generator plugin](https://marketplace.visualstudio.com/items?itemName=aprilandjan.ascii-tree-generator).
 
+![Demo 1](./screenshots/demo.gif)
+![Demo 2](./screenshots/demo_2.gif)
+![Demo 3](./screenshots/demo_3.gif)
+
 ## Installation
 
 ```lua
