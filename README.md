@@ -93,6 +93,8 @@ Select the text in visual mode, and run the command `:AsciiTree`. Your text will
 
 The command accepts 2 arguments - the width to use for each tree level, and the style of delimiters. The default is equivalent to `:AsciiTree 2 #`. The default values can be changed using the setup method ([see Setup](#setup)).
 
+The values can be given in any order your desire. `:AsciiTree 10 -` and `:AsciiTree - 10` will have the same effect.
+
 If the tree only has one root node, the top level will not display any symbols for the root node.
 ```
 One root (A)
