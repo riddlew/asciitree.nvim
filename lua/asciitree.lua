@@ -188,9 +188,38 @@ function M.format_branches(lines, opts)
 	end, list)
 end
 
+function M.get_args(...)
+	local args = { ... }
+	local depth = M.settings.depth
+	local delimiter = M.settings.delimiter
+
+	if #args == 1 then
+		local num = tonumber(args[1])
+		if num ~= nil then
+			depth = num
+		else
+			delimiter = args[1]
+		end
+	elseif #args == 2 then
+		local largs = { tonumber(args[1]), tonumber(args[2]) }
+		if largs[1] ~= nil then
+			depth = largs[1]
+			delimiter = args[2]
+		else
+			delimiter = args[1]
+			depth = largs[2]
+		end
+	end
+
+	return {
+		depth = depth,
+		delimiter = delimiter,
+	}
+end
+
 --- Generate the tree.
 -- @param depth Width of each branch segment
-function M.generate(depth, delimiter)
+function M.generate(...)
 	local line_start = vim.api.nvim_buf_get_mark(0, "<")[1] - 1
 	local line_end = vim.api.nvim_buf_get_mark(0, ">")[1]
 
@@ -199,10 +228,12 @@ function M.generate(depth, delimiter)
 		return
 	end
 
+	local args = M.get_args(...)
+
 	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
 	local result = M.format_branches(lines, {
-		depth = depth,
-		delimiter = delimiter,
+		depth = args.depth,
+		delimiter = args.delimiter,
 	})
 
 	vim.api.nvim_buf_set_lines(0, line_start, line_end, false, result)
