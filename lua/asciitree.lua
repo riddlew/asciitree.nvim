@@ -28,7 +28,7 @@ end
 
 --- Generates the tree and removes empty and unrelated content.
 -- @param lines List of lines to generate the tree from
-function M.parse(lines, delim)
+local function parse(lines, delim)
 	local new_lines = tbl_copy(lines)
 	local list = {}
 	local single_parent
@@ -149,7 +149,7 @@ function M.format_branches(lines, opts)
 	opts.depth = opts.depth or M.settings.depth
 	opts.delimiter = opts.delimiter or M.settings.delimiter
 
-	local list, is_single = M.parse(lines, opts.delimiter)
+	local list, is_single = parse(lines, opts.delimiter)
 
 	if #list == 0 then
 		return lines
