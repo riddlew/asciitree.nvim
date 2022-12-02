@@ -3,15 +3,16 @@ main: check lint
 
 .PHONY: check
 check:
-	@echo "Checking format (stylua)..."
-	@stylua lua/ --config-path=.stylua.toml --check
+	stylua lua/ test/*_spec.lua --config-path=.stylua.toml --check
 
 .PHONY: fmt
 fmt:
-	@echo "Formatting (stylua)..."
-	@stylua lua/ --config-path=.stylua.toml
+	stylua lua/ test/*_spec.lua --config-path=.stylua.toml
 
 .PHONY: lint
 lint:
-	@echo "Linting (luacheck)..."
-	@luacheck lua/
+	luacheck lua/ test/*_spec.lua
+
+.PHONY: test
+test:
+	nvim --headless -c "PlenaryBustedFile test/*_spec.lua" -u 'test/minimal_init.vim'
