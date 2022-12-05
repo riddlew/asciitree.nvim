@@ -217,9 +217,7 @@ function M.get_args(...)
 	}
 end
 
---- Generate the tree.
--- @param depth Width of each branch segment
-function M.generate(...)
+local function get_selected_lines()
 	local line_start = vim.api.nvim_buf_get_mark(0, "<")[1] - 1
 	local line_end = vim.api.nvim_buf_get_mark(0, ">")[1]
 
@@ -228,9 +226,16 @@ function M.generate(...)
 		return
 	end
 
-	local args = M.get_args(...)
-
 	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
+	return lines, line_start, line_end
+end
+
+--- Generate the tree.
+-- @param depth Width of each branch segment
+function M.generate(...)
+	local args = M.get_args(...)
+	local lines, line_start, line_end = get_selected_lines()
+
 	local result = M.format_branches(lines, {
 		depth = args.depth,
 		delimiter = args.delimiter,
