@@ -50,7 +50,7 @@ jobs:
           wget https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
           chmod u+x nvim.appimage
           sudo ./nvim.appimage --appimage-extract
-          sudo mv squashfs-root/AppRun /usr/bin/nvim
+          sudo mv ./squashfs-root/AppRun /usr/bin/nvim
           git clone https://github.com/nvim-lua/plenary.nvim.git ~/.local/share/nvim/site/pack/plenary.nvim/start/plenary.nvim
       - name: Test
         continue-on-error: false
