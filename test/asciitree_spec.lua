@@ -30,7 +30,7 @@ local data = {
 		"## L",
 	},
 	default = {
-		"#A",
+		"# A",
 		"## B",
 		"### C",
 		"#### D",
@@ -40,6 +40,7 @@ local data = {
 		"#### H",
 		"### I",
 		"## J",
+		"### K",
 	},
 	whitespace = {
 		" ",
@@ -69,7 +70,7 @@ local data = {
 		"# A",
 		"## B",
 		"## C",
-		"#### D",
+		"### D",
 		"# E",
 		"## F",
 		"### G",
@@ -251,6 +252,41 @@ local target = {
 		"|  |  L. H",
 		"|  L. I",
 		"L. J",
+		"   L. K",
+	},
+	indented_whitespace_tabs = {
+		"	",
+		"	",
+		"	A",
+		"	├─ B",
+		"	│  └─ C",
+		"	│     └─ D",
+		"	│        └─ E",
+		"	├─ F",
+		"	│  ├─ G",
+		"	│  │  └─ H",
+		"	│  └─ I",
+		"	└─ J",
+		"	   └─ K",
+		"	",
+		"	",
+	},
+	indented_whitespace_spaces = {
+		"    ",
+		"  ",
+		"    A",
+		"    ├─ B",
+		"    │  └─ C",
+		"    │     └─ D",
+		"    │        └─ E",
+		"    ├─ F",
+		"    │  ├─ G",
+		"    │  │  └─ H",
+		"    │  └─ I",
+		"    └─ J",
+		"       └─ K",
+		"    ",
+		"  ",
 	},
 }
 
@@ -277,7 +313,7 @@ assert:register(
 	"assertion.tbl_equal.positive"
 )
 
-describe("asciitree", function()
+describe("AsciiTree", function()
 	describe("should get the correct args", function()
 		it("given 0 argument", function()
 			local args = asciitree.get_args()
@@ -374,4 +410,52 @@ describe("asciitree", function()
 			blank = " ",
 		}
 	end)
+end)
+
+describe("AsciiTreeUndo", function()
+	describe("should make the tree with the default command if", function()
+		it("has one root", function()
+			local result = asciitree.format_delimiter(target.one_root)
+			assert.tbl_equal(data.one_root, result)
+		end)
+		it("has more than one root", function()
+			local result = asciitree.format_delimiter(target.many_root)
+			assert.tbl_equal(data.many_root, result)
+		end)
+	end)
+	describe("should undo trees if the depth is given", function()
+		local result = asciitree.format_delimiter(target.depth_1, { depth = 1 })
+		assert.tbl_equal(data.depth, result)
+
+		result = asciitree.format_delimiter(target.depth_4, { depth = 4 })
+		assert.tbl_equal(data.depth, result)
+
+		result = asciitree.format_delimiter(target.depth_8, { depth = 8 })
+		assert.tbl_equal(data.depth, result)
+	end)
+	it("should undo trees using a customer delimiter", function()
+		local result =
+			asciitree.format_delimiter(target.default, { delimiter = "-" })
+		assert.tbl_equal(data.custom_delimiter, result)
+
+		result = asciitree.format_delimiter(target.default, { delimiter = "*" })
+		assert.tbl_equal(data.custom_delimiter_2, result)
+
+		result = asciitree.format_delimiter(target.default, { delimiter = "." })
+		assert.tbl_equal(data.custom_delimiter_3, result)
+
+		result = asciitree.format_delimiter(target.default, { delimiter = "+" })
+		assert.tbl_equal(data.custom_delimiter_4, result)
+	end)
+	it(
+		"should parse trees that are indented and have empty lines around it",
+		function()
+			local result =
+				asciitree.format_delimiter(target.indented_whitespace_spaces)
+			assert.tbl_equal(data.default, result)
+
+			result = asciitree.format_delimiter(target.indented_whitespace_tabs)
+			assert.tbl_equal(data.default, result)
+		end
+	)
 end)
