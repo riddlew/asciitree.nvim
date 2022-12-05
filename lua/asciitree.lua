@@ -34,6 +34,7 @@ local function parse(lines, delim)
 	local single_parent
 	local i = 1
 	local len = #new_lines
+	local indentation
 
 	::start::
 	if #new_lines == 0 then
@@ -41,8 +42,7 @@ local function parse(lines, delim)
 	end
 
 	while i <= len do
-		local delimiter =
-			new_lines[i]:match("^[\t%s]*[" .. sanitize(delim) .. "]+")
+		local delimiter = new_lines[i]:match("[" .. sanitize(delim) .. "]+")
 
 		-- Remove empty lines or lines without delimiters and continue.
 		if not delimiter then
@@ -51,8 +51,13 @@ local function parse(lines, delim)
 			goto start
 		end
 
+		-- Get the indentation
+		indentation = new_lines[i]:gsub("^([\t%s]*).-$", "%1")
+
 		local item
-		local name = new_lines[i]:sub(#delimiter + 1):gsub("^%s*(.-)%s*$", "%1")
+		local name = new_lines[i]
+			:sub(#delimiter + #indentation + 1)
+			:gsub("^%s*(.-)%s*$", "%1")
 		local depth = #delimiter
 		local prev = list[i - 1]
 
@@ -125,7 +130,7 @@ local function parse(lines, delim)
 		last = last.parent
 	end
 
-	return list, single_parent
+	return list, single_parent, indentation
 end
 
 --- Convert an ASCII tree back to plain lines with delimiters.
@@ -205,7 +210,7 @@ local function parse_tree(lines, opts)
 		i = i + 1
 	end
 
-	return list
+	return list, indentation
 end
 
 --- Creates the tree branch segment with the correct symbols and padding.
@@ -229,7 +234,7 @@ function M.format_branches(lines, opts)
 	opts.depth = opts.depth or M.settings.depth
 	opts.delimiter = opts.delimiter or M.settings.delimiter
 
-	local list, is_single = parse(lines, opts.delimiter)
+	local list, is_single, indentation = parse(lines, opts.delimiter)
 
 	if #list == 0 then
 		return lines
@@ -264,7 +269,7 @@ function M.format_branches(lines, opts)
 			parent = parent.parent
 		end
 
-		return table.concat(branch, "") .. item.name
+		return indentation .. table.concat(branch, "") .. item.name
 	end, list)
 end
 
@@ -273,7 +278,7 @@ function M.format_delimiter(lines, opts)
 	opts.depth = opts.depth or M.settings.depth
 	opts.delimiter = opts.delimiter or M.settings.delimiter
 
-	local list = parse_tree(lines, opts)
+	local list, indentation = parse_tree(lines, opts)
 
 	if #list == 0 then
 		return lines
@@ -281,7 +286,8 @@ function M.format_delimiter(lines, opts)
 
 	return vim.tbl_map(function(item)
 		local line = string.format(
-			"%s %s",
+			"%s%s %s",
+			indentation,
 			string.rep(opts.delimiter, item.depth),
 			item.name
 		)
