@@ -138,6 +138,32 @@ local data = {
 		"++ J",
 		"+++ K",
 	},
+	indented_whitespace_tabs = {
+		"	# A",
+		"	## B",
+		"	### C",
+		"	#### D",
+		"	##### E",
+		"	## F",
+		"	### G",
+		"	#### H",
+		"	### I",
+		"	## J",
+		"	### K",
+	},
+	indented_whitespace_spaces = {
+		"    # A",
+		"    ## B",
+		"    ### C",
+		"    #### D",
+		"    ##### E",
+		"    ## F",
+		"    ### G",
+		"    #### H",
+		"    ### I",
+		"    ## J",
+		"    ### K",
+	},
 }
 
 local target = {
@@ -452,10 +478,10 @@ describe("AsciiTreeUndo", function()
 		function()
 			local result =
 				asciitree.format_delimiter(target.indented_whitespace_spaces)
-			assert.tbl_equal(data.default, result)
+			assert.tbl_equal(data.indented_whitespace_spaces, result)
 
 			result = asciitree.format_delimiter(target.indented_whitespace_tabs)
-			assert.tbl_equal(data.default, result)
+			assert.tbl_equal(data.indented_whitespace_tabs, result)
 		end
 	)
 end)
