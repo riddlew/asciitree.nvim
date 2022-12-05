@@ -128,6 +128,86 @@ local function parse(lines, delim)
 	return list, single_parent
 end
 
+--- Convert an ASCII tree back to plain lines with delimiters.
+-- @param lines Table of lines of the ASCII tree to be converted.
+-- @param opts Table of params (depth and delimiter) to use to parse the tree.
+local function parse_tree(lines, opts)
+	local new_lines = tbl_copy(lines)
+	local list = {}
+	local i = 1
+
+	-- Replacing strings instead of using regex because Lua doesn't handle
+	-- unicode very well. I'm sure it's possible, but I spent too much time
+	-- trying to make it work, so for now I'm using this.
+	local convert = {
+		-- │
+		M.settings.symbols.parent
+			.. string.rep(M.settings.symbols.blank, opts.depth - 1)
+			.. " ",
+		-- └─ (no space)
+		M.settings.symbols.last
+			.. string.rep(M.settings.symbols.dash, opts.depth - 1),
+		-- ├─ (no space)
+		M.settings.symbols.child
+			.. string.rep(M.settings.symbols.dash, opts.depth - 1),
+		-- n blanks and a space
+		string.rep(M.settings.symbols.blank, opts.depth) .. " ",
+	}
+
+	-- Remove all empty lines
+	local len = #new_lines
+	while i <= len do
+		local empty_line = new_lines[i]:match("^[\t%s]*$")
+
+		if empty_line ~= nil then
+			table.remove(new_lines, i)
+			len = len - 1
+		else
+			i = i + 1
+		end
+	end
+
+	-- Check the first line to see if it has unicode. If it does, it's not a
+	-- single root tree.
+	local single_parent = false
+	local _, unicode_cnt =
+		new_lines[1]:gsub("[%z\1-\127\194-\244][\128-\191]", "")
+	if unicode_cnt == 0 then
+		single_parent = true
+	end
+
+	-- Get the indentation of the first line
+	local indentation = new_lines[1]:gsub("^([\t%s]*).-$", "%1")
+
+	len = #new_lines
+	i = 1
+	while i <= len do
+		-- Remove indentation first
+		new_lines[i] = new_lines[i]:sub(#indentation + 1)
+
+		local item = { depth = single_parent and 1 or 0 }
+
+		-- Iterate over the pairs of symbols, increase depth amount for the
+		-- item, and replace unicode with the delimiter.
+		for _, entry in pairs(convert) do
+			local cnt
+			new_lines[i], cnt = new_lines[i]:gsub(entry, opts.delimiter)
+			item.depth = item.depth + cnt
+		end
+
+		-- Now that unicode is replaced with the delimiter, it's a lot easier
+		-- to use regex to find the name than with unicode.
+		item.name = new_lines[i]:match(
+			"[" .. sanitize(opts.delimiter) .. "]*%s*(.-)%s*$"
+		)
+		table.insert(list, item)
+
+		i = i + 1
+	end
+
+	return list
+end
+
 --- Creates the tree branch segment with the correct symbols and padding.
 -- @param start Character used for the start of the branch
 -- @param fill  Character used for padding
@@ -188,6 +268,28 @@ function M.format_branches(lines, opts)
 	end, list)
 end
 
+function M.format_delimiter(lines, opts)
+	opts = opts or {}
+	opts.depth = opts.depth or M.settings.depth
+	opts.delimiter = opts.delimiter or M.settings.delimiter
+
+	local list = parse_tree(lines, opts)
+
+	if #list == 0 then
+		return lines
+	end
+
+	return vim.tbl_map(function(item)
+		local line = string.format(
+			"%s %s",
+			string.rep(opts.delimiter, item.depth),
+			item.name
+		)
+
+		return line
+	end, list)
+end
+
 function M.get_args(...)
 	local args = { ... }
 	local depth = M.settings.depth
@@ -217,9 +319,7 @@ function M.get_args(...)
 	}
 end
 
---- Generate the tree.
--- @param depth Width of each branch segment
-function M.generate(...)
+local function get_selected_lines()
 	local line_start = vim.api.nvim_buf_get_mark(0, "<")[1] - 1
 	local line_end = vim.api.nvim_buf_get_mark(0, ">")[1]
 
@@ -228,10 +328,29 @@ function M.generate(...)
 		return
 	end
 
-	local args = M.get_args(...)
-
 	local lines = vim.api.nvim_buf_get_lines(0, line_start, line_end, false)
+	return lines, line_start, line_end
+end
+
+--- Generate the tree.
+-- @param depth Width of each branch segment
+function M.generate(...)
+	local args = M.get_args(...)
+	local lines, line_start, line_end = get_selected_lines()
+
 	local result = M.format_branches(lines, {
+		depth = args.depth,
+		delimiter = args.delimiter,
+	})
+
+	vim.api.nvim_buf_set_lines(0, line_start, line_end, false, result)
+end
+
+function M.undo(...)
+	local args = M.get_args(...)
+	local lines, line_start, line_end = get_selected_lines()
+
+	local result = M.format_delimiter(lines, {
 		depth = args.depth,
 		delimiter = args.delimiter,
 	})
